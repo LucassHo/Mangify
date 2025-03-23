@@ -7,7 +7,7 @@ import {
   generatePanelImage,
   fixPanelDialogue,
 } from "@/functions/generate";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   CharacterExtractionResponse,
   ExtractCharactersResult,
