@@ -17,6 +17,9 @@ import {
   ProcessStep,
 } from "@/types";
 
+// Display mode type for manga reader
+type DisplayMode = "detailed" | "images-only";
+
 export default function Home() {
   const [storyContent, setStoryContent] = useState<string>("");
   const [extractionResult, setExtractionResult] = useState<CharacterExtractionResponse | null>(
@@ -61,6 +64,12 @@ export default function Home() {
   const [processedPanelCount, setProcessedPanelCount] = useState<number>(0);
   const [isBatchProcessing, setIsBatchProcessing] = useState<boolean>(false);
   const PANELS_PER_BATCH = 10;
+
+  // Add display mode state
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("detailed");
+
+  // Add state to track if characters section is expanded
+  const [isCharactersExpanded, setIsCharactersExpanded] = useState<boolean>(false);
 
   // Function for one-click manga generation
   const handleGenerateCompleteManga = async () => {
@@ -359,6 +368,16 @@ export default function Home() {
     return Math.round(weightedProgress / totalWeight);
   };
 
+  // Function to toggle display mode
+  const toggleDisplayMode = () => {
+    setDisplayMode((prev) => (prev === "detailed" ? "images-only" : "detailed"));
+  };
+
+  // Function to toggle characters section expansion
+  const toggleCharactersSection = () => {
+    setIsCharactersExpanded((prev) => !prev);
+  };
+
   return (
     <main className="min-h-screen p-8 bg-slate-900">
       <div className="flex flex-col items-center max-w-6xl mx-auto">
@@ -487,70 +506,122 @@ export default function Home() {
           </div>
         )}
 
-        {/* Characters Section */}
+        {/* Characters Section - Now Collapsible */}
         {extractionResult && (
           <div className="mt-10 w-full">
             <div className="flex flex-col">
-              <h2 className="text-2xl font-semibold mb-4 card-title">Characters</h2>
-
-              {extractionResult.response.characters.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {extractionResult.response.characters.map(
-                    (character: Character, index: number) => (
-                      <div key={index} className="card bg-base-100 shadow-lg">
-                        <div className="card-body">
-                          <h3 className="card-title">{character.name}</h3>
-                          <p className="text-gray-400">
-                            <span className="font-medium">Appearance:</span> {character.appearance}
-                          </p>
-
-                          {character.imageBase64 ? (
-                            <figure className="mt-4">
-                              <img
-                                src={`data:image/png;base64,${character.imageBase64}`}
-                                alt={`Generated image of ${character.name}`}
-                                className="w-full rounded-lg"
-                              />
-                            </figure>
-                          ) : (
-                            <div className="card-actions justify-end mt-4">
-                              <button
-                                // onClick={() => handleGenerateImage(character, index)}
-                                disabled={generatingImages[index] || isProcessing}
-                                className="btn btn-primary btn-sm"
-                              >
-                                {generatingImages[index] ? (
-                                  <>
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                    Generating...
-                                  </>
-                                ) : (
-                                  "Generate Image"
-                                )}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-semibold card-title">Characters</h2>
+                <button onClick={toggleCharactersSection} className="btn btn-sm btn-ghost">
+                  {isCharactersExpanded ? (
+                    <div className="flex items-center">
+                      <span className="mr-2">Collapse</span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 15l7-7 7 7"
+                        />
+                      </svg>
+                    </div>
+                  ) : (
+                    <div className="flex items-center">
+                      <span className="mr-2">Expand</span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
                   )}
-                </div>
-              ) : (
-                <div className="alert alert-info">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    className="stroke-current shrink-0 w-6 h-6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    ></path>
-                  </svg>
-                  <span>No characters were found in the text.</span>
+                </button>
+              </div>
+
+              {/* Characters Content - Conditionally rendered based on expanded state */}
+              {isCharactersExpanded &&
+                (extractionResult.response.characters.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {extractionResult.response.characters.map(
+                      (character: Character, index: number) => (
+                        <div key={index} className="card bg-base-100 shadow-lg">
+                          <div className="card-body">
+                            <h3 className="card-title">{character.name}</h3>
+                            <p className="text-gray-400">
+                              <span className="font-medium">Appearance:</span>{" "}
+                              {character.appearance}
+                            </p>
+
+                            {character.imageBase64 ? (
+                              <figure className="mt-4">
+                                <img
+                                  src={`data:image/png;base64,${character.imageBase64}`}
+                                  alt={`Generated image of ${character.name}`}
+                                  className="w-full rounded-lg"
+                                />
+                              </figure>
+                            ) : (
+                              <div className="card-actions justify-end mt-4">
+                                <button
+                                  disabled={generatingImages[index] || isProcessing}
+                                  className="btn btn-primary btn-sm"
+                                >
+                                  {generatingImages[index] ? (
+                                    <>
+                                      <span className="loading loading-spinner loading-xs"></span>
+                                      Generating...
+                                    </>
+                                  ) : (
+                                    "Generate Image"
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <div className="alert alert-info">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      className="stroke-current shrink-0 w-6 h-6"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      ></path>
+                    </svg>
+                    <span>No characters were found in the text.</span>
+                  </div>
+                ))}
+
+              {/* Character count summary when collapsed */}
+              {!isCharactersExpanded && extractionResult.response.characters.length > 0 && (
+                <div className="text-gray-400 text-sm">
+                  {extractionResult.response.characters.length} character
+                  {extractionResult.response.characters.length !== 1 ? "s" : ""} generated. Click
+                  expand to view.
                 </div>
               )}
             </div>
@@ -560,133 +631,240 @@ export default function Home() {
         {/* Panels Section */}
         {panelsResult && (
           <div className="mt-16 w-full">
-            <h2 className="text-2xl font-semibold mb-6 card-title">Manga Panels</h2>
-            <div className="space-y-8">
-              {panelsResult.response.panels.map((panel: Panel, index: number) => (
-                <div key={index} className="card bg-base-100 shadow-lg">
-                  <div className="card-body">
-                    <h3 className="card-title">Panel {index + 1}</h3>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold card-title">Manga Panels</h2>
 
-                    {panel.imageBase64 ? (
-                      <figure className="mb-6">
-                        <img
-                          src={`data:image/png;base64,${panel.imageBase64}`}
-                          alt={`Generated panel ${index + 1}`}
-                          className="w-full rounded-lg"
+              {/* Display mode toggle */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm opacity-70">Display mode:</span>
+                <button onClick={toggleDisplayMode} className="btn btn-sm btn-outline">
+                  {displayMode === "detailed" ? (
+                    <>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mr-1"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                         />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                      </svg>
+                      Reading Mode
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mr-1"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                        />
+                      </svg>
+                      Detailed Mode
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
 
-                        {panel.Dialogue && !isProcessing && (
-                          <div className="card-actions justify-end mt-4">
-                            <button
-                              // onClick={() => handleFixPanelDialogue(panel, index)}
-                              disabled={generatingPanelImages[index] || isProcessing}
-                              className="btn btn-secondary btn-sm"
-                            >
-                              {generatingPanelImages[index] ? (
-                                <>
-                                  <span className="loading loading-spinner loading-xs"></span>
-                                  Adding Dialogue...
-                                </>
-                              ) : (
-                                "Regenerate Dialogue"
-                              )}
-                            </button>
-                          </div>
-                        )}
-                      </figure>
-                    ) : (
-                      <div className="flex flex-col gap-3 items-center mb-6">
-                        <button
-                          // onClick={() => handleGeneratePanelImage(panel, index)}
-                          disabled={generatingPanelImages[index] || isProcessing}
-                          className="btn btn-primary"
-                        >
-                          {generatingPanelImages[index] ? (
-                            <>
-                              <span className="loading loading-spinner loading-xs"></span>
-                              Generating Panel...
-                            </>
-                          ) : (
-                            "Generate Panel"
-                          )}
-                        </button>
+            {/* Images-only mode */}
+            {displayMode === "images-only" ? (
+              <div className="space-y-6 max-w-4xl mx-auto">
+                {panelsResult.response.panels.map((panel: Panel, index: number) =>
+                  panel.imageBase64 ? (
+                    <div key={index} className="manga-panel">
+                      <img
+                        src={`data:image/png;base64,${panel.imageBase64}`}
+                        alt={`Panel ${index + 1}`}
+                        className="w-full rounded-lg shadow-lg"
+                      />
+                      <div className="text-center text-sm text-gray-400 mt-1">
+                        Panel {index + 1}{" "}
+                        {panel.Dialogue
+                          ? `- "${panel.Dialogue.substring(0, 30)}${
+                              panel.Dialogue.length > 30 ? "..." : ""
+                            }"`
+                          : ""}
                       </div>
-                    )}
+                    </div>
+                  ) : null
+                )}
 
-                    <div className="collapse collapse-arrow bg-base-200">
-                      <input type="checkbox" />
-                      <div className="collapse-title text-lg font-medium">Panel Details</div>
-                      <div className="collapse-content">
-                        <div className="mb-3">
-                          <p className="font-medium text-gray-400">Setting:</p>
-                          <p className="text-gray-500">{panel.setting}</p>
-                        </div>
+                {/* Load More Panels button for image mode */}
+                {panelsResult.response.panels.length > processedPanelCount && (
+                  <div className="text-center mt-8">
+                    <button
+                      onClick={handleLoadMorePanels}
+                      disabled={isBatchProcessing || isProcessing}
+                      className="btn btn-primary btn-lg"
+                    >
+                      {isBatchProcessing ? (
+                        <>
+                          <span className="loading loading-spinner"></span>
+                          Processing Next Batch...
+                        </>
+                      ) : (
+                        `Load Next ${Math.min(
+                          PANELS_PER_BATCH,
+                          panelsResult.response.panels.length - processedPanelCount
+                        )} Panels`
+                      )}
+                    </button>
+                    <p className="mt-2 text-sm text-gray-500">
+                      {processedPanelCount} of {panelsResult.response.panels.length} panels
+                      processed
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Original detailed view
+              <div className="space-y-8">
+                {panelsResult.response.panels.map((panel: Panel, index: number) => (
+                  <div key={index} className="card bg-base-100 shadow-lg">
+                    <div className="card-body">
+                      <h3 className="card-title">Panel {index + 1}</h3>
 
-                        {panel.character && panel.character.length > 0 && (
-                          <div className="mb-3">
-                            <p className="font-medium text-gray-400">Characters:</p>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {panel.character.map((char, charIndex) => (
-                                <div key={charIndex} className="badge badge-outline">
-                                  {char}
-                                </div>
-                              ))}
+                      {panel.imageBase64 ? (
+                        <figure className="mb-6">
+                          <img
+                            src={`data:image/png;base64,${panel.imageBase64}`}
+                            alt={`Generated panel ${index + 1}`}
+                            className="w-full rounded-lg"
+                          />
+
+                          {panel.Dialogue && !isProcessing && (
+                            <div className="card-actions justify-end mt-4">
+                              {/* <button
+                                // onClick={() => handleFixPanelDialogue(panel, index)}
+                                disabled={generatingPanelImages[index] || isProcessing}
+                                className="btn btn-secondary btn-sm"
+                              >
+                                {generatingPanelImages[index] ? (
+                                  <>
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                    Adding Dialogue...
+                                  </>
+                                ) : (
+                                  "Regenerate Dialogue"
+                                )}
+                              </button> */}
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </figure>
+                      ) : (
+                        <div className="flex flex-col gap-3 items-center mb-6">
+                          <button
+                            // onClick={() => handleGeneratePanelImage(panel, index)}
+                            disabled={generatingPanelImages[index] || isProcessing}
+                            className="btn btn-primary"
+                          >
+                            {generatingPanelImages[index] ? (
+                              <>
+                                <span className="loading loading-spinner loading-xs"></span>
+                                Generating Panel...
+                              </>
+                            ) : (
+                              "Generate Panel"
+                            )}
+                          </button>
+                        </div>
+                      )}
 
-                        {panel.expression && (
+                      <div className="collapse collapse-arrow bg-base-200">
+                        <input type="checkbox" />
+                        <div className="collapse-title text-lg font-medium">Panel Details</div>
+                        <div className="collapse-content">
                           <div className="mb-3">
-                            <p className="font-medium text-gray-400">Action/Expression:</p>
-                            <p className="text-gray-500">{panel.expression}</p>
+                            <p className="font-medium text-gray-400">Setting:</p>
+                            <p className="text-gray-500">{panel.setting}</p>
                           </div>
-                        )}
 
-                        {panel.Dialogue && (
-                          <div className="mb-3">
-                            <p className="font-medium text-gray-400">Dialogue/SFX:</p>
-                            <p className="text-gray-500 italic">"{panel.Dialogue}"</p>
-                          </div>
-                        )}
+                          {panel.character && panel.character.length > 0 && (
+                            <div className="mb-3">
+                              <p className="font-medium text-gray-400">Characters:</p>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {panel.character.map((char, charIndex) => (
+                                  <div key={charIndex} className="badge badge-outline">
+                                    {char}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
 
-                        {panel.Drawing_notes && (
-                          <div className="mb-3">
-                            <p className="font-medium text-gray-400">Style Notes:</p>
-                            <p className="text-gray-500">{panel.Drawing_notes}</p>
-                          </div>
-                        )}
+                          {panel.expression && (
+                            <div className="mb-3">
+                              <p className="font-medium text-gray-400">Action/Expression:</p>
+                              <p className="text-gray-500">{panel.expression}</p>
+                            </div>
+                          )}
+
+                          {panel.Dialogue && (
+                            <div className="mb-3">
+                              <p className="font-medium text-gray-400">Dialogue/SFX:</p>
+                              <p className="text-gray-500 italic">"{panel.Dialogue}"</p>
+                            </div>
+                          )}
+
+                          {panel.Drawing_notes && (
+                            <div className="mb-3">
+                              <p className="font-medium text-gray-400">Style Notes:</p>
+                              <p className="text-gray-500">{panel.Drawing_notes}</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
 
-              {/* Load More Panels button */}
-              {panelsResult.response.panels.length > processedPanelCount && (
-                <div className="text-center mt-8">
-                  <button
-                    onClick={handleLoadMorePanels}
-                    disabled={isBatchProcessing || isProcessing}
-                    className="btn btn-primary btn-lg"
-                  >
-                    {isBatchProcessing ? (
-                      <>
-                        <span className="loading loading-spinner"></span>
-                        Processing Next Batch...
-                      </>
-                    ) : (
-                      `Load Next ${Math.min(
-                        PANELS_PER_BATCH,
-                        panelsResult.response.panels.length - processedPanelCount
-                      )} Panels`
-                    )}
-                  </button>
-                  <p className="mt-2 text-sm text-gray-500">
-                    {processedPanelCount} of {panelsResult.response.panels.length} panels processed
-                  </p>
-                </div>
-              )}
-            </div>
+                {/* Load More Panels button */}
+                {panelsResult.response.panels.length > processedPanelCount && (
+                  <div className="text-center mt-8">
+                    <button
+                      onClick={handleLoadMorePanels}
+                      disabled={isBatchProcessing || isProcessing}
+                      className="btn btn-primary btn-lg"
+                    >
+                      {isBatchProcessing ? (
+                        <>
+                          <span className="loading loading-spinner"></span>
+                          Processing Next Batch...
+                        </>
+                      ) : (
+                        `Load Next ${Math.min(
+                          PANELS_PER_BATCH,
+                          panelsResult.response.panels.length - processedPanelCount
+                        )} Panels`
+                      )}
+                    </button>
+                    <p className="mt-2 text-sm text-gray-500">
+                      {processedPanelCount} of {panelsResult.response.panels.length} panels
+                      processed
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
