@@ -96,6 +96,7 @@ Make sure to maintain character appearance consistency with the reference images
     const model = genAI.getGenerativeModel({
       model: "gemini-2.0-flash-exp-image-generation",
       generationConfig: {
+         // @ts-ignore
         responseModalities: ["Text", "Image"], // Explicitly request image responses
         temperature: 0.7,
         topP: 0.95,
@@ -167,13 +168,13 @@ Make sure to maintain character appearance consistency with the reference images
       );
 
       // Try one more direct access attempt if structure is as expected
-      if (response.response?.candidates?.[0]?.content?.parts?.length > 0) {
+      if (response.response?.candidates?.[0]?.content?.parts && response.response.candidates[0].content.parts.length > 0) {
         console.log("Attempting alternative extraction method");
         const parts = response.response.candidates[0].content.parts;
         for (let i = 0; i < parts.length; i++) {
-          console.log(`Part ${i} type:`, parts[i].type || "unknown");
-          if (parts[i].inlineData && parts[i].inlineData.data) {
-            imageBase64 = parts[i].inlineData.data;
+          console.log(`Part ${i} type:`, parts[i].text !== undefined ? "text" : parts[i].inlineData !== undefined ? "inlineData" : "unknown");
+          if (parts[i].inlineData?.data) {
+            imageBase64 = parts[i].inlineData?.data;
             console.log("Found image in part", i);
             break;
           }
@@ -347,9 +348,10 @@ export async function fixPanelDialogue(
     const model = genAI.getGenerativeModel({
       model: "gemini-2.0-flash-exp-image-generation",
       generationConfig: {
-        responseModalities: ["Text", "Image"],
-        temperature: 0.4, // Lower temperature for more deterministic results
-        topP: 0.95,
+      // @ts-ignore
+      responseModalities: ["Text", "Image"],
+      temperature: 0.4, // Lower temperature for more deterministic results
+      topP: 0.95,
       },
     });
 
