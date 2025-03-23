@@ -14,54 +14,54 @@ const openaiApiKey = process.env.OPENAI_API_KEY;
 if (!openaiApiKey) throw new Error("OPENAI_API_KEY env not found");
 const openai = new OpenAI({ apiKey: openaiApiKey });
 
-export async function generateCharacterImage(character: Character): Promise<ImageGenerationResult> {
-  try {
-    // Create a detailed prompt based on character appearance
-    const prompt = `Generate a manga-style line-art full body of a character with the following appearance: ${character.appearance}. 
-    The character's name is ${character.name}. Draw it in white background drawn in a Japanese black and white Manga art style`;
+// export async function generateCharacterImage(character: Character): Promise<ImageGenerationResult> {
+//   try {
+//     // Create a detailed prompt based on character appearance
+//     const prompt = `Generate a manga-style line-art full body of a character with the following appearance: ${character.appearance}.
+//     The character's name is ${character.name}. Draw it in white background drawn in a Japanese black and white Manga art style`;
 
-    // Get the model with image generation capabilities
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-exp-image-generation",
-      generationConfig: {
-        // responseModalities: ["Text", "Image"],
-        temperature: 0.7,
-        topP: 0.95,
-      },
-    });
+//     // Get the model with image generation capabilities
+//     const model = genAI.getGenerativeModel({
+//       model: "gemini-2.0-flash-exp-image-generation",
+//       generationConfig: {
+//         // responseModalities: ["Text", "Image"],
+//         temperature: 0.7,
+//         topP: 0.95,
+//       },
+//     });
 
-    // Generate the content
-    const response = await model.generateContent(prompt);
+//     // Generate the content
+//     const response = await model.generateContent(prompt);
 
-    // Extract the image data from the response
-    let imageBase64 = null;
+//     // Extract the image data from the response
+//     let imageBase64 = null;
 
-    for (const candidate of response.response?.candidates || []) {
-      for (const part of candidate.content.parts) {
-        if (part.inlineData && part.inlineData.data) {
-          imageBase64 = part.inlineData.data;
-          break;
-        }
-      }
-      if (imageBase64) break;
-    }
+//     for (const candidate of response.response?.candidates || []) {
+//       for (const part of candidate.content.parts) {
+//         if (part.inlineData && part.inlineData.data) {
+//           imageBase64 = part.inlineData.data;
+//           break;
+//         }
+//       }
+//       if (imageBase64) break;
+//     }
 
-    if (!imageBase64) {
-      throw new Error("No image was generated in the response");
-    }
+//     if (!imageBase64) {
+//       throw new Error("No image was generated in the response");
+//     }
 
-    return {
-      success: true,
-      imageBase64: imageBase64,
-    };
-  } catch (error) {
-    console.error("Image generation error:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "An unknown error occurred",
-    };
-  }
-}
+//     return {
+//       success: true,
+//       imageBase64: imageBase64,
+//     };
+//   } catch (error) {
+//     console.error("Image generation error:", error);
+//     return {
+//       success: false,
+//       error: error instanceof Error ? error.message : "An unknown error occurred",
+//     };
+//   }
+// }
 
 export async function generatePanelImage(
   panelDescription: string,
@@ -92,11 +92,11 @@ Style: Black and white manga illustration with clean lines, proper manga-style c
 Include appropriate backgrounds, character positioning, and any action described in the scene.
 Make sure to maintain character appearance consistency with the reference images I'm providing.`;
 
-    // Get the model with image generation capabilities
+    // Get the model with image generation capabilities - IMPORTANT: Set responseModalities to include Image
     const model = genAI.getGenerativeModel({
       model: "gemini-2.0-flash-exp-image-generation",
       generationConfig: {
-        // responseModalities: ["Text", "Image"],
+        responseModalities: ["Text", "Image"], // Explicitly request image responses
         temperature: 0.7,
         topP: 0.95,
       },
@@ -136,20 +136,56 @@ Make sure to maintain character appearance consistency with the reference images
     // Generate the content
     const response = await model.generateContent(contentParts);
 
-    // Extract the image data from the response
+    console.log("Response received, extracting image...");
+
+    // Extract the image data from the response using the approach from the official documentation
     let imageBase64 = null;
 
-    for (const candidate of response.response.candidates || []) {
-      for (const part of candidate.content.parts) {
-        if (part.inlineData && part.inlineData.data) {
+    // Simplified approach directly following the documentation pattern
+    if (response.response.candidates && response.response.candidates.length > 0) {
+      for (const part of response.response.candidates[0].content.parts) {
+        if (part.text) {
+          console.log("Text response from Gemini:", part.text);
+        } else if (part.inlineData && part.inlineData.data) {
           imageBase64 = part.inlineData.data;
+          console.log("Found image data in response");
           break;
         }
       }
-      if (imageBase64) break;
+    }
+
+    // Debug response structure if no image found
+    if (!imageBase64) {
+      console.error(
+        "Response structure:",
+        JSON.stringify({
+          hasResponse: !!response.response,
+          candidatesCount: response.response?.candidates?.length || 0,
+          hasContent: !!response.response?.candidates?.[0]?.content,
+          partsCount: response.response?.candidates?.[0]?.content?.parts?.length || 0,
+        })
+      );
+
+      // Try one more direct access attempt if structure is as expected
+      if (response.response?.candidates?.[0]?.content?.parts?.length > 0) {
+        console.log("Attempting alternative extraction method");
+        const parts = response.response.candidates[0].content.parts;
+        for (let i = 0; i < parts.length; i++) {
+          console.log(`Part ${i} type:`, parts[i].type || "unknown");
+          if (parts[i].inlineData && parts[i].inlineData.data) {
+            imageBase64 = parts[i].inlineData.data;
+            console.log("Found image in part", i);
+            break;
+          }
+        }
+      }
     }
 
     if (!imageBase64) {
+      console.error(
+        "Failed to extract image from response. Response snippet:",
+        JSON.stringify(response.response).substring(0, 500) + "..."
+      );
       throw new Error("No panel image was generated in the response");
     }
 
@@ -159,6 +195,13 @@ Make sure to maintain character appearance consistency with the reference images
     };
   } catch (error) {
     console.error("Panel image generation error:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : "An unknown error occurred",
@@ -166,93 +209,93 @@ Make sure to maintain character appearance consistency with the reference images
   }
 }
 
-export async function generatePanelImageDallE(
-  panelDescription: string,
-  characters: Character[]
-): Promise<ImageGenerationResult> {
-  try {
-    // Filter to only include characters with generated images
-    const charactersWithImages = characters.filter((char) => char.imageBase64);
+// export async function generatePanelImageDallE(
+//   panelDescription: string,
+//   characters: Character[]
+// ): Promise<ImageGenerationResult> {
+//   try {
+//     // Filter to only include characters with generated images
+//     const charactersWithImages = characters.filter((char) => char.imageBase64);
 
-    // Create character descriptions for the prompt
-    const characterDescriptions = characters
-      .map((char) => `${char.name}: ${char.appearance}`)
-      .join("\n");
+//     // Create character descriptions for the prompt
+//     const characterDescriptions = characters
+//       .map((char) => `${char.name}: ${char.appearance}`)
+//       .join("\n");
 
-    // Create references to characters with images
-    const characterReferences =
-      charactersWithImages.length > 0
-        ? `\nReference characters: ${charactersWithImages
-            .map((char) => char.name)
-            .join(", ")}. Make sure these characters look exactly as described.`
-        : "";
+//     // Create references to characters with images
+//     const characterReferences =
+//       charactersWithImages.length > 0
+//         ? `\nReference characters: ${charactersWithImages
+//             .map((char) => char.name)
+//             .join(", ")}. Make sure these characters look exactly as described.`
+//         : "";
 
-    // Create a detailed prompt for DALL-E 3
-    // DALL-E 3 works best with very detailed prompts
-    const prompt = `Create a black and white manga panel illustration in Japanese manga style with the following scene:
+//     // Create a detailed prompt for DALL-E 3
+//     // DALL-E 3 works best with very detailed prompts
+//     const prompt = `Create a black and white manga panel illustration in Japanese manga style with the following scene:
 
-SETTING: ${
-      panelDescription.includes("Setting:")
-        ? panelDescription.split("Setting:")[1].split("\n")[0].trim()
-        : "A manga scene"
-    }
+// SETTING: ${
+//       panelDescription.includes("Setting:")
+//         ? panelDescription.split("Setting:")[1].split("\n")[0].trim()
+//         : "A manga scene"
+//     }
 
-CHARACTERS: ${
-      panelDescription.includes("Characters:")
-        ? panelDescription.split("Characters:")[1].split("\n")[0].trim()
-        : "The manga characters"
-    }
+// CHARACTERS: ${
+//       panelDescription.includes("Characters:")
+//         ? panelDescription.split("Characters:")[1].split("\n")[0].trim()
+//         : "The manga characters"
+//     }
 
-ACTION: ${
-      panelDescription.includes("Action/Expression:")
-        ? panelDescription.split("Action/Expression:")[1].split("\n")[0].trim()
-        : "Character interaction"
-    }
+// ACTION: ${
+//       panelDescription.includes("Action/Expression:")
+//         ? panelDescription.split("Action/Expression:")[1].split("\n")[0].trim()
+//         : "Character interaction"
+//     }
 
-DIALOGUE: ${
-      panelDescription.includes("Dialogue:")
-        ? panelDescription.split("Dialogue:")[1].split("\n")[0].trim()
-        : "None"
-    }
+// DIALOGUE: ${
+//       panelDescription.includes("Dialogue:")
+//         ? panelDescription.split("Dialogue:")[1].split("\n")[0].trim()
+//         : "None"
+//     }
 
-CHARACTER DESCRIPTIONS:
-${characterDescriptions}
+// CHARACTER DESCRIPTIONS:
+// ${characterDescriptions}
 
-STYLE NOTES: Classic black and white manga with clean line art, proper perspective, dynamic composition, and manga-specific visual elements like speed lines and emotion indicators where appropriate.${characterReferences}
+// STYLE NOTES: Classic black and white manga with clean line art, proper perspective, dynamic composition, and manga-specific visual elements like speed lines and emotion indicators where appropriate.${characterReferences}
 
-This should look like a professional manga panel that could appear in a published Japanese manga. Make the art clean, detailed, and expressive.`;
+// This should look like a professional manga panel that could appear in a published Japanese manga. Make the art clean, detailed, and expressive.`;
 
-    console.log("DALL-E Prompt:", prompt);
+//     console.log("DALL-E Prompt:", prompt);
 
-    // Call OpenAI's DALL-E 3 model
-    const response = await openai.images.generate({
-      model: "dall-e-3", // Explicitly specify DALL-E 3
-      prompt: prompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "standard",
-      response_format: "b64_json",
-    });
+//     // Call OpenAI's DALL-E 3 model
+//     const response = await openai.images.generate({
+//       model: "dall-e-3", // Explicitly specify DALL-E 3
+//       prompt: prompt,
+//       n: 1,
+//       size: "1024x1024",
+//       quality: "standard",
+//       response_format: "b64_json",
+//     });
 
-    // Extract the base64-encoded image from the response
-    const imageData = response.data[0]?.b64_json;
+//     // Extract the base64-encoded image from the response
+//     const imageData = response.data[0]?.b64_json;
 
-    if (!imageData) {
-      throw new Error("No panel image was generated in the DALL-E response");
-    }
+//     if (!imageData) {
+//       throw new Error("No panel image was generated in the DALL-E response");
+//     }
 
-    return {
-      success: true,
-      imageBase64: imageData,
-    };
-  } catch (error) {
-    console.error("Panel image generation error using DALL-E:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "An unknown error occurred",
-    };
-  }
-}
+//     return {
+//       success: true,
+//       imageBase64: imageData,
+//     };
+//   } catch (error) {
+//     console.error("Panel image generation error using DALL-E:", error);
+//     return {
+//       success: false,
+//       error: error instanceof Error ? error.message : "An unknown error occurred",
+//     };
+//   }
+// }
 
 export async function generateCharacterImageDallE(
   character: Character
@@ -304,7 +347,7 @@ export async function fixPanelDialogue(
     const model = genAI.getGenerativeModel({
       model: "gemini-2.0-flash-exp-image-generation",
       generationConfig: {
-        // responseModalities: ["Text", "Image"],
+        responseModalities: ["Text", "Image"],
         temperature: 0.4, // Lower temperature for more deterministic results
         topP: 0.95,
       },
