@@ -515,7 +515,7 @@ export default function Home() {
                           ) : (
                             <div className="card-actions justify-end mt-4">
                               <button
-                                onClick={() => handleGenerateImage(character, index)}
+                                // onClick={() => handleGenerateImage(character, index)}
                                 disabled={generatingImages[index] || isProcessing}
                                 className="btn btn-primary btn-sm"
                               >
@@ -578,7 +578,7 @@ export default function Home() {
                         {panel.Dialogue && !isProcessing && (
                           <div className="card-actions justify-end mt-4">
                             <button
-                              onClick={() => handleFixPanelDialogue(panel, index)}
+                              // onClick={() => handleFixPanelDialogue(panel, index)}
                               disabled={generatingPanelImages[index] || isProcessing}
                               className="btn btn-secondary btn-sm"
                             >
@@ -597,7 +597,7 @@ export default function Home() {
                     ) : (
                       <div className="flex flex-col gap-3 items-center mb-6">
                         <button
-                          onClick={() => handleGeneratePanelImage(panel, index)}
+                          // onClick={() => handleGeneratePanelImage(panel, index)}
                           disabled={generatingPanelImages[index] || isProcessing}
                           className="btn btn-primary"
                         >

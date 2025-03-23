@@ -24,7 +24,7 @@ export async function generateCharacterImage(character: Character): Promise<Imag
     const model = genAI.getGenerativeModel({
       model: "gemini-2.0-flash-exp-image-generation",
       generationConfig: {
-        responseModalities: ["Text", "Image"],
+        // responseModalities: ["Text", "Image"],
         temperature: 0.7,
         topP: 0.95,
       },
@@ -36,7 +36,7 @@ export async function generateCharacterImage(character: Character): Promise<Imag
     // Extract the image data from the response
     let imageBase64 = null;
 
-    for (const candidate of response.response.candidates) {
+    for (const candidate of response.response?.candidates || []) {
       for (const part of candidate.content.parts) {
         if (part.inlineData && part.inlineData.data) {
           imageBase64 = part.inlineData.data;
@@ -96,7 +96,7 @@ Make sure to maintain character appearance consistency with the reference images
     const model = genAI.getGenerativeModel({
       model: "gemini-2.0-flash-exp-image-generation",
       generationConfig: {
-        responseModalities: ["Text", "Image"],
+        // responseModalities: ["Text", "Image"],
         temperature: 0.7,
         topP: 0.95,
       },
@@ -139,7 +139,7 @@ Make sure to maintain character appearance consistency with the reference images
     // Extract the image data from the response
     let imageBase64 = null;
 
-    for (const candidate of response.response.candidates) {
+    for (const candidate of response.response.candidates || []) {
       for (const part of candidate.content.parts) {
         if (part.inlineData && part.inlineData.data) {
           imageBase64 = part.inlineData.data;
@@ -304,7 +304,7 @@ export async function fixPanelDialogue(
     const model = genAI.getGenerativeModel({
       model: "gemini-2.0-flash-exp-image-generation",
       generationConfig: {
-        responseModalities: ["Text", "Image"],
+        // responseModalities: ["Text", "Image"],
         temperature: 0.4, // Lower temperature for more deterministic results
         topP: 0.95,
       },
@@ -335,7 +335,7 @@ export async function fixPanelDialogue(
 
     // Extract the cleaned image
     let cleanedImageBase64 = null;
-    for (const candidate of cleanupResponse.response.candidates) {
+    for (const candidate of cleanupResponse.response.candidates || []) {
       for (const part of candidate.content.parts) {
         if (part.inlineData && part.inlineData.data) {
           cleanedImageBase64 = part.inlineData.data;
@@ -377,7 +377,7 @@ export async function fixPanelDialogue(
 
     // Extract the final image
     let finalImageBase64 = null;
-    for (const candidate of finalResponse.response.candidates) {
+    for (const candidate of finalResponse.response.candidates || []) {
       for (const part of candidate.content.parts) {
         if (part.inlineData && part.inlineData.data) {
           finalImageBase64 = part.inlineData.data;
