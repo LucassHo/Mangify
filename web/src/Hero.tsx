@@ -1,10 +1,40 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Lottie from "lottie-react";
 
 import Bookss from "./anim.json";
 
-const Hero = () => {
+interface HeroProps {
+  // Add any props you need
+}
+
+export default function Hero(props: HeroProps) {
+  // Add state to track if component is mounted (client-side)
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Set isMounted to true once the component is mounted
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Only render Lottie on the client side
+  if (!isMounted) {
+    // Return a placeholder with the same dimensions to prevent layout shift
+    return (
+      <div
+        className="hero-placeholder"
+        style={
+          {
+            /* Add dimensions */
+          }
+        }
+      ></div>
+    );
+  }
+
+  // Client-side rendering
   return (
     <section className="hero min-h-screen" style={{ backgroundImage: `url('/bg.gif')` }}>
       <div className="hero-content text-center text-neutral-content">
@@ -32,6 +62,4 @@ const Hero = () => {
       </div>
     </section>
   );
-};
-
-export default Hero;
+}
