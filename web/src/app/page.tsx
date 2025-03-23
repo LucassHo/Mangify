@@ -7,7 +7,7 @@ import {
   generatePanelImage,
   fixPanelDialogue,
 } from "@/functions/generate";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   CharacterExtractionResponse,
   ExtractCharactersResult,
@@ -23,6 +23,11 @@ import Hero from "@/Hero";
 type DisplayMode = "detailed" | "images-only";
 
 export default function Home() {
+  // Add ref for the form
+  const formRef = useRef<HTMLFormElement>(null);
+  // State to track if component is mounted (client-side)
+  const [isMounted, setIsMounted] = useState(false);
+
   const [storyContent, setStoryContent] = useState<string>("");
   const [extractionResult, setExtractionResult] = useState<CharacterExtractionResponse | null>(
     null
@@ -73,7 +78,12 @@ export default function Home() {
   // Add state to track if characters section is expanded
   const [isCharactersExpanded, setIsCharactersExpanded] = useState<boolean>(false);
 
-  // Function for one-click manga generation
+  // Set isMounted to true once the component is mounted
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Function for one-click manga generation - modified to use ref
   const handleGenerateCompleteManga = async () => {
     if (!storyContent) {
       alert("Please enter a story first");
@@ -87,10 +97,14 @@ export default function Home() {
 
       // Step 1: Extract characters
       setProgress((prev) => ({ ...prev, extractingCharacters: 30 }));
-      const charactersResult = await extract_characters(
-        null,
-        new FormData(document.querySelector("form") as HTMLFormElement)
-      );
+
+      // Create form data using ref instead of direct document access
+      const formData = new FormData();
+      if (storyContent) {
+        formData.append("text_content", storyContent);
+      }
+
+      const charactersResult = await extract_characters(null, formData);
 
       if (!charactersResult.success || !charactersResult.data) {
         throw new Error("Failed to extract characters: " + charactersResult.error);
@@ -380,8 +394,15 @@ export default function Home() {
     setIsCharactersExpanded((prev) => !prev);
   };
 
+  // Only render the full component on the client side
+  if (!isMounted) {
+    return <div className="min-h-screen p-8 flex items-center justify-center">
+      <div className="loading loading-spinner loading-lg"></div>
+    </div>;
+  }
+
   return (
-    <main className="min-h-screen p-8 ">
+    <main className="min-h-screen p-8">
       <div className="flex flex-col items-center max-w-6xl mx-auto">
         <Hero />
         <h1 className="text-4xl font-bold text-center">Put your story in!</h1>
@@ -408,7 +429,7 @@ export default function Home() {
                   ? `(${progress.extractingPanels}%)`
                   : ""}
               </li>
-              <li className={`step ${progress.generatingPanels > 0 ? "step-primary" : ""}`}>
+              <li className={`step ${progress.generatingPanels > 0 ? "step-primary" : ""}`}></li>
                 Generate Panels{" "}
                 {progress.generatingPanels > 0 && progress.generatingPanels < 100
                   ? `(${progress.generatingPanels}%)`
@@ -440,7 +461,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Story Input Form */}
+        {/* Story Input Form - Now with ref */}
         <div className="card w-full bg-base-100 shadow-xl mt-8">
           <div className="card-body">
             <h2 className="card-title">Your Story</h2>
@@ -450,7 +471,7 @@ export default function Home() {
               <p className="mt-2 text-gray-600">Enter your story text below to generate a manga.</p>
             )}
 
-            <form action={extract_charactersAction} className="w-full mt-4">
+            <form ref={formRef} action={extract_charactersAction} className="w-full mt-4">
               <textarea
                 name="text_content"
                 placeholder="Enter your story text here"
