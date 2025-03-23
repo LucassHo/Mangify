@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MANGIFY</title>
+    <style>
+        body {
+            margin: 0; /* Remove default margins */
+            background-color: black; /* Fill empty spaces with black */
+            display: flex;
+            justify-content: center; /* Center image horizontally */
+            align-items: flex-start; /* Align image to the top */
+            height: 100vh; /* Full screen height */
+            position: relative;
+        }
+
+        .image-container {
+            position: relative;
+            display: inline-block; /* Ensures it wraps around the image */
+        }
+
+        img {
+            width: 100vw; /* Make the image fill the full width */
+            height: auto; /* Maintain aspect ratio */
+            object-fit: cover; /* Ensures it covers the width properly */
+        }
+
+        .invisible-button {
+            position: absolute;
+            background: rgba(255, 0, 0, 0); /* Semi-transparent red */
+            border: 0px solid white; /* White border for visibility */
+            cursor: pointer;
+        }
+
+        .invisible-button1{
+            top: 85%;  /* Adjust to position the button */
+            left: 31.7%; /* Adjust for horizontal placement */
+            width: 36.7%;
+            height:11.2%;
+        }
+
+        .invisible-button2{
+            top: 64.3%;  /* Adjust to position the button */
+            left: 37.6%; /* Adjust for horizontal placement */
+            width: 25%;
+            height:9.3%;
+        }
+
+        .drop-zone {
+            position: absolute;
+            top: 35%;
+            left: 16%;
+            width: 68.2%;
+            height: 46%;
+            border: 0px dashed white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 18px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0);
+            transition: background 0.3s ease;
+            border-radius: 30px;
+
+            pointer-events:auto;
+        }
+
+        .drop-zone:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .drop-zone.dragover {
+            background-color: rgba(16, 51, 20, 0.606);
+        }
+    </style>
+</head>
+<link rel="icon" type="image/png" href="images/favicon.png">
+<body>
+    <div class="image-container">
+        <img src="images/ProductX Mangify Website Design.svg" alt="Manga Design">
+        <button class="invisible-button invisible-button1" onclick="buttonClicked1()"></button>
+        <div id="drop-zone" class="drop-zone"></div>
+    </div>
+
+    <script>
+
+    const dropZone = document.getElementById("drop-zone");
+
+// Highlight when dragging over
+dropZone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    dropZone.classList.add("dragover");
+});
+
+// Remove highlight when leaving
+dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("dragover");
+});
+
+// Handle dropped file
+dropZone.addEventListener("drop", (event) => {
+    event.preventDefault();
+    dropZone.classList.remove("dragover");
+
+    const file = event.dataTransfer.files[0];
+    
+    if (file && file.type === "application/pdf") {
+        selectedPDF=file;
+        alert("PDF Uploaded: " + selectedPDF.name);
+        // Process file further (e.g., upload it or extract text)
+    } else {
+        alert("Please upload a valid PDF file.");
+    }
+});
+
+// Allow click to open file picker
+dropZone.addEventListener("click", () => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "application/pdf";
+    fileInput.style.display = "none";
+    document.body.appendChild(fileInput);
+    fileInput.click();
+
+    fileInput.addEventListener("change", function () {
+        if (fileInput.files.length > 0) {
+            selectedPDF = file.Input.files[0];
+            alert("PDF Selected: " + fileInput.files[0].name);
+            document.body.removeChild(fileInput);
+        }
+    });
+});
+function buttonClicked1(buttonNumber){
+    alert("Button " + buttonNumber + " Clicked!")
+}
+
+function usePDF(){
+    if(selectedPDF){
+        alert("Converting to Manga...")
+    } else{
+        alert("NO PDF has been uploaded yet!")
+    }
+}
+    </script>
+</body>
+</html>
