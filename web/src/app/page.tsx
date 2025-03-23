@@ -17,6 +17,8 @@ import {
   ProcessStep,
 } from "@/types";
 
+import Hero from "@/Hero";
+
 // Display mode type for manga reader
 type DisplayMode = "detailed" | "images-only";
 
@@ -379,9 +381,10 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen p-8 bg-slate-900">
+    <main className="min-h-screen p-8 ">
       <div className="flex flex-col items-center max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-center">Manga Panel Generator</h1>
+        <Hero />
+        <h1 className="text-4xl font-bold text-center">Put your story in!</h1>
 
         {/* Step Indicator */}
         {currentStep !== "idle" && (
