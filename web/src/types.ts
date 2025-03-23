@@ -25,6 +25,7 @@ export interface Panel {
   expression: string;
   Dialogue: string;
   Drawing_notes: string;
+  imageBase64?: string;
 }
 
 export interface PanelExtractionResponse {

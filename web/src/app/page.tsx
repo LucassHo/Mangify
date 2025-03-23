@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { extract_characters, extract_panels } from "@/functions/extract";
-import { generateCharacterImage } from "@/functions/generate";
+import { generateCharacterImage, generatePanelImage } from "@/functions/generate";
 import { useState } from "react";
 import {
   CharacterExtractionResponse,
@@ -20,6 +20,7 @@ export default function Home() {
   const [panelsResult, setPanelsResult] = useState<PanelExtractionResponse | null>(null);
   const [generatingImages, setGeneratingImages] = useState<Record<number, boolean>>({});
   const [extractingPanels, setExtractingPanels] = useState<boolean>(false);
+  const [generatingPanelImages, setGeneratingPanelImages] = useState<Record<number, boolean>>({});
 
   const [error, extract_charactersAction, isLoading] = useActionState(
     async (_: unknown, formData: FormData) => {
@@ -92,6 +93,64 @@ export default function Home() {
       );
     } finally {
       setExtractingPanels(false);
+    }
+  };
+
+  // Function to generate panel image
+  const handleGeneratePanelImage = async (panel: Panel, index: number) => {
+    if (!panelsResult || !extractionResult) return;
+
+    // Check if any characters mentioned in the panel have images
+    const panelCharacterNames = panel.character || [];
+    const charactersWithImages = extractionResult.response.characters.filter(
+      (char) => char.imageBase64 && panelCharacterNames.includes(char.name)
+    );
+
+    // If no characters in this panel have images, warn the user
+    if (charactersWithImages.length === 0 && panelCharacterNames.length > 0) {
+      alert("Please generate images for at least one character in this panel first.");
+      return;
+    }
+
+    // Set loading state for this panel
+    setGeneratingPanelImages((prev) => ({ ...prev, [index]: true }));
+
+    try {
+      // Create a panel description
+      const panelDescription = `
+        Setting: ${panel.setting}
+        Characters: ${panel.character.join(", ")}
+        Action/Expression: ${panel.expression}
+        Dialogue: ${panel.Dialogue || "None"}
+        Style Notes: ${panel.Drawing_notes || "Standard manga style"}
+      `;
+
+      const result = await generatePanelImage(
+        panelDescription,
+        extractionResult.response.characters
+      );
+
+      if (result.success && result.imageBase64) {
+        // Update panel with image data
+        const updatedPanels = [...panelsResult.response.panels];
+        updatedPanels[index] = {
+          ...updatedPanels[index],
+          imageBase64: result.imageBase64,
+        };
+
+        // Update state with new panel data
+        setPanelsResult({
+          response: { panels: updatedPanels },
+        });
+      } else {
+        console.error("Failed to generate panel image:", result.error);
+        alert(`Failed to generate panel image: ${result.error}`);
+      }
+    } catch (err) {
+      console.error("Error generating panel image:", err);
+    } finally {
+      // Clear loading state
+      setGeneratingPanelImages((prev) => ({ ...prev, [index]: false }));
     }
   };
 
@@ -233,50 +292,113 @@ export default function Home() {
           <div className="mt-16 w-full">
             <h2 className="text-2xl font-semibold mb-6">Manga Panels</h2>
             <div className="space-y-8">
-              {panelsResult.response.panels.map((panel: Panel, index: number) => (
-                <div key={index} className="border rounded-lg p-6 bg-white shadow">
-                  <h3 className="text-xl font-bold mb-3">Panel {index + 1}</h3>
+              {panelsResult.response.panels.map((panel: Panel, index: number) => {
+                // Check if any characters in this panel have images
+                const panelCharacterNames = panel.character || [];
+                const anyCharacterHasImage = extractionResult?.response.characters.some(
+                  (char) => char.imageBase64 && panelCharacterNames.includes(char.name)
+                );
 
-                  <div className="mb-3">
-                    <p className="font-medium text-gray-700">Setting:</p>
-                    <p className="text-gray-800">{panel.setting}</p>
+                return (
+                  <div key={index} className="border rounded-lg p-6 bg-white shadow">
+                    <h3 className="text-xl font-bold mb-3">Panel {index + 1}</h3>
+
+                    {panel.imageBase64 ? (
+                      <div className="mb-6 bg-gray-100 rounded overflow-hidden">
+                        <img
+                          src={`data:image/png;base64,${panel.imageBase64}`}
+                          alt={`Generated panel ${index + 1}`}
+                          className="w-full h-auto object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center mb-6">
+                        <button
+                          onClick={() => handleGeneratePanelImage(panel, index)}
+                          disabled={generatingPanelImages[index] || !anyCharacterHasImage}
+                          className={`px-4 py-2 text-white rounded flex items-center ${
+                            anyCharacterHasImage
+                              ? "bg-indigo-600 hover:bg-indigo-700"
+                              : "bg-gray-400 cursor-not-allowed"
+                          }`}
+                        >
+                          {generatingPanelImages[index] ? (
+                            <>
+                              <svg
+                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Generating Panel...
+                            </>
+                          ) : (
+                            "Generate Panel Image"
+                          )}
+                        </button>
+                        {!anyCharacterHasImage && panel.character.length > 0 && (
+                          <p className="text-sm text-gray-500 mt-2">
+                            Generate character images first to create this panel
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mb-3">
+                      <p className="font-medium text-gray-700">Setting:</p>
+                      <p className="text-gray-800">{panel.setting}</p>
+                    </div>
+
+                    {panel.character && panel.character.length > 0 && (
+                      <div className="mb-3">
+                        <p className="font-medium text-gray-700">Characters:</p>
+                        <ul className="list-disc list-inside">
+                          {panel.character.map((char, charIndex) => (
+                            <li key={charIndex} className="text-gray-800">
+                              {char}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {panel.expression && (
+                      <div className="mb-3">
+                        <p className="font-medium text-gray-700">Action/Expression:</p>
+                        <p className="text-gray-800">{panel.expression}</p>
+                      </div>
+                    )}
+
+                    {panel.Dialogue && (
+                      <div className="mb-3">
+                        <p className="font-medium text-gray-700">Dialogue/SFX:</p>
+                        <p className="text-gray-800 italic">"{panel.Dialogue}"</p>
+                      </div>
+                    )}
+
+                    {panel.Drawing_notes && (
+                      <div className="mb-3">
+                        <p className="font-medium text-gray-700">Style Notes:</p>
+                        <p className="text-gray-800">{panel.Drawing_notes}</p>
+                      </div>
+                    )}
                   </div>
-
-                  {panel.character && panel.character.length > 0 && (
-                    <div className="mb-3">
-                      <p className="font-medium text-gray-700">Characters:</p>
-                      <ul className="list-disc list-inside">
-                        {panel.character.map((char, charIndex) => (
-                          <li key={charIndex} className="text-gray-800">
-                            {char}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {panel.expression && (
-                    <div className="mb-3">
-                      <p className="font-medium text-gray-700">Action/Expression:</p>
-                      <p className="text-gray-800">{panel.expression}</p>
-                    </div>
-                  )}
-
-                  {panel.Dialogue && (
-                    <div className="mb-3">
-                      <p className="font-medium text-gray-700">Dialogue/SFX:</p>
-                      <p className="text-gray-800 italic">"{panel.Dialogue}"</p>
-                    </div>
-                  )}
-
-                  {panel.Drawing_notes && (
-                    <div className="mb-3">
-                      <p className="font-medium text-gray-700">Style Notes:</p>
-                      <p className="text-gray-800">{panel.Drawing_notes}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
