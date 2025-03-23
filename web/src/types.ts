@@ -49,3 +49,15 @@ export interface ImageGenerationResult {
   imageBase64?: string;
   error?: string;
 }
+
+/**
+ * Process step types
+ */
+export type ProcessStep =
+  | "idle"
+  | "extractingCharacters"
+  | "generatingCharacters"
+  | "extractingPanels"
+  | "generatingPanels"
+  | "addingDialogue"
+  | "completed";
